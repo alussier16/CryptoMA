@@ -11,21 +11,27 @@ quandl.ApiConfig.api_key = 'zzY7_MGnNrssWChSg9LX'
 plotly.offline.init_notebook_mode(connected=True)
 
 altcoin_btc_pair = {}
-exchanges = ['KRAKEN', 'COINBASE', 'BITSTAMP', 'OKCOIN', 'COINBASE']
+exchanges = ['KRAKEN', 'COINBASE', 'BITSTAMP']
 f_exchanges = {}
-alts = ['LTC', 'XMR', 'ETH', 'XEM', 'XRP', 'DASH', 'ETC']
+alts = ['LTC', 'XMR', 'ETH', 'XRP']
 
 url = 'https://poloniex.com/public?command=returnChartData&currencyPair={}&start={}&end={}&period={}'
 
 #USING QUANDL BITCOIN API @ https://blog.quandl.com/api-for-bitcoin-data
-def read_file(file_name, path):
-    if(path == ''):
+def read_file(file_name, path, type):
+    if type == 0:
         path = '{}.pkl'.format(file_name).replace('/','-')
-    try:
-        file = pickle.load(open(path, 'rb'))
-    except IOError:
-        file = quandl.get(file_name, returns="pandas")
-        file.to_pickle(path)
+        try:
+            file = pickle.load(open(path, 'rb'))
+        except IOError:
+            file = quandl.get(file_name, returns="pandas")
+            file.to_pickle(path)
+    elif type == 1:
+        try:
+            file = pickle.load(open(path, 'rb'))
+        except (OSError, IOError) as e:
+            file = pandas.read_json(file_name)
+            file.to_pickle(path)
     
     print('Successfully installed {}'.format(file_name))
     return file
@@ -80,16 +86,15 @@ def to_table(data, label, col):
         
     return pandas.DataFrame(table)
 
-
 #GRAB DATA FROM POLONIEX (LINK ABOVE)
 def grab_data(crypto):
-    file = read_file(url.format(url, '2015-01-01', datetime.now(), 86400), crypto)
+    file = read_file(url.format(crypto, (datetime.strptime('2016-01-01', '%Y-%m-%d')).timestamp(), (datetime.now()).timestamp(), 86400), crypto, 1)
     file = file.set_index('date')
     return file
 
 
 for exchange in exchanges:
-    f_exchanges[exchange] = read_file('BCHARTS/{}USD'.format(exchange), '')
+    f_exchanges[exchange] = read_file('BCHARTS/{}USD'.format(exchange), '', 0)
 
 for alt in alts:
     altcoin_btc_pair[alt] = grab_data('BTC_{}'.format(alt))
